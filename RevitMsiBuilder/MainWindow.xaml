@@ -299,18 +299,23 @@
             <Grid>
                 <StackPanel HorizontalAlignment="Left" Orientation="Horizontal">
                     <CheckBox
-                        Content="Include debug symbols"
+                        Content="Compress file .msi"
+                        IsChecked="True"
+                        IsEnabled="False"
                         Margin="0,0,20,0"
                         VerticalAlignment="Center" />
-                    <CheckBox Content="Create desktop shortcut" VerticalAlignment="Center" />
+                    <CheckBox
+                        Content="Multiple Versions"
+                        IsEnabled="False"
+                        VerticalAlignment="Center" />
                 </StackPanel>
                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                    <Button
-                        Background="#6c757d"
-                        Content="Save Configuration"
-                        Margin="0,0,10,0"
-                        Style="{StaticResource ModernButton}"
-                        Width="130" />
+                    <!--  <Button  -->
+                    <!--  Background="#6c757d"  -->
+                    <!--  Content="Save Configuration"  -->
+                    <!--  Margin="0,0,10,0"  -->
+                    <!--  Style="{StaticResource ModernButton}"  -->
+                    <!--  Width="130" />  -->
                     <Button
                         Click="DeployButton_Click"
                         Style="{StaticResource ModernButton}"
