@@ -2,9 +2,9 @@
 
 public class MsiBuilderFactory
 {
-    public static IMsiBuilder CreateMsiBuilder()
+    public static IMsiBuilder CreateMsiBuilder(ILogger logger)
     {
         // Here we could select different implementations based on configuration or other factors
-        return new WixSharpMsiBuilder();
+        return new WixSharpMsiBuilder(logger);
     }
 }

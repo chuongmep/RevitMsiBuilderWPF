@@ -17,7 +17,7 @@ public partial class MainWindow : Window
         // Initialize ViewModel with required services
         Logger logger = new Logger();
         AddinFileParser parser = new AddinFileParser(logger);
-        WixSharpMsiBuilder msiBuilder = new WixSharpMsiBuilder();
+        WixSharpMsiBuilder msiBuilder = new WixSharpMsiBuilder(logger);
         _viewModel = new MainViewModel(parser, 
             msiBuilder,
             logger);

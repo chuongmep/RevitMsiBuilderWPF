@@ -113,7 +113,6 @@ public class MainViewModel : INotifyPropertyChanged
             Filter = "Addin files (*.addin)|*.addin|All files (*.*)|*.*",
             Title = "Select .addin File"
         };
-
         if (dialog.ShowDialog() == true)
         {
             _logger.Log("Loading addin file: " + dialog.FileName);
@@ -141,6 +140,12 @@ public class MainViewModel : INotifyPropertyChanged
                 _logger.Log($"Error parsing .addin file: {ex.Message}");
             }
         }
+        
+    }
+
+    private void GenerateConfig()
+    {
+        // gen a file setting.config
     }
 
     private void LoadRevitVersions(string addinDir)

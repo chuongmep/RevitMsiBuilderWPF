@@ -10,7 +10,12 @@ using File = System.IO.File;
 namespace RevitMsiBuilder.Services;
 
  public class WixSharpMsiBuilder : IMsiBuilder
-    {
+    { 
+        private readonly ILogger Logger;
+        public WixSharpMsiBuilder(ILogger logger)
+        {
+            Logger = logger;
+        }
         public string GenerateVersionString()
         {
             // Version format: 1.0.YY.DDD where YY is last two digits of year and DDD is day of year
@@ -77,6 +82,7 @@ namespace RevitMsiBuilder.Services;
             catch (Exception ex)
             {
                 Console.WriteLine($"Error building MSI: {ex.Message}");
+                Logger.Log($"Error building MSI: {ex.Message}");
                 return null;
             }
         }
@@ -191,6 +197,7 @@ namespace RevitMsiBuilder.Services;
             }
             catch (Exception ex)
             {
+                Logger.Log($"Error compressing file: {ex.Message}");
                 Console.WriteLine($"Error creating ZIP: {ex.Message}");
             }
         }
