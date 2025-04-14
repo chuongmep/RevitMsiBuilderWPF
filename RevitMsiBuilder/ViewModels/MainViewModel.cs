@@ -187,9 +187,10 @@ public class MainViewModel : INotifyPropertyChanged
 
             if (!string.IsNullOrEmpty(msiPath))
             {
+                _logger.Log("Msi created successfully at " + msiPath);
                 string zipPath = Path.Combine(config.OutputDirectory, $"{config.ProjectName}-{config.Version}.zip");
                 _msiBuilder.CompressFile(msiPath, zipPath);
-                _logger.Log($"MSI and ZIP created successfully at {msiPath} and {zipPath}");
+                _logger.Log("Msi compressed into zip successfully at " + zipPath);
             }
             else
             {

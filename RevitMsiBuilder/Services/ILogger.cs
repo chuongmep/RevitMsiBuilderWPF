@@ -41,6 +41,7 @@ namespace RevitMsiBuilder.Services
         bool SaveLogToFile(string filePath);
         
         void ClearLog();
+        string GetFullLog();
     }
     
     /// <summary>

@@ -152,7 +152,7 @@
                         Text="Select Add-in File" />
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Button
-                            Click="BrowseButton_Click"
+                            Command="{Binding BrowseCommand}"
                             Height="36"
                             Style="{StaticResource ModernButton}"
                             Width="150">
@@ -320,7 +320,7 @@
                     <!--  Style="{StaticResource ModernButton}"  -->
                     <!--  Width="130" />  -->
                     <Button
-                        Click="DeployButton_Click"
+                        Command="{Binding DeployCommand}"
                         Style="{StaticResource ModernButton}"
                         Width="130"
                         x:Name="DeployButton">

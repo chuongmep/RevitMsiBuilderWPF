@@ -33,13 +33,4 @@ public partial class MainWindow : Window
             }
         };
     }
-    private void BrowseButton_Click(object sender, RoutedEventArgs e)
-    {
-        _viewModel.BrowseCommand.Execute(null);
-    }
-    
-    private void DeployButton_Click(object sender, RoutedEventArgs e)
-    {
-        _viewModel.DeployCommand.Execute(null);
-    }
 }

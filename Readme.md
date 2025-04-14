@@ -23,5 +23,5 @@ The WPF frontend allows you to:
 
 - 🛠 Deploy and view real-time logs
 
-![](./docs/RevitMsiBuilder_QfMP8Tqq67.png)
+![](./docs/RevitMsiBuilder_NaVB1wPQrE.png)
 
