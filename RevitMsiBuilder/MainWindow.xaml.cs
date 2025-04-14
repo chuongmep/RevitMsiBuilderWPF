@@ -91,7 +91,7 @@ public partial class MainWindow : Window
             if (!_revitVersions.Any())
             {
                 // get current Year and create list with 10 years close to it
-                var nextYear = DateTime.Now.Year+1;
+                var nextYear = DateTime.Now.Year + 1;
                 var years = new List<int>();
                 for (int i = 0; i < 10; i++)
                 {
@@ -128,6 +128,7 @@ public partial class MainWindow : Window
         {
             var assembly = addin.Element("Assembly")?.Value;
             addinName = addin.Element("Name")?.Value ?? addinName;
+
             if (string.IsNullOrEmpty(assembly))
             {
                 Console.WriteLine($"Warning: No Assembly specified in .addin file for AddIn {addinName}.");
@@ -135,6 +136,7 @@ public partial class MainWindow : Window
             }
 
             string resolvedPath;
+
             if (Path.IsPathRooted(assembly))
             {
                 resolvedPath = assembly;
@@ -154,12 +156,44 @@ public partial class MainWindow : Window
                 continue;
             }
 
+            if (!File.Exists(resolvedPath))
+            {
+                // Fallback: try scanning for the DLL in the directory
+                var resolvedDir = Path.GetDirectoryName(resolvedPath);
+                var assemblyFileName = Path.GetFileName(assembly);
+
+                // Try direct sibling path
+                var siblingPath = Path.Combine(resolvedDir, assemblyFileName);
+                if (File.Exists(siblingPath))
+                {
+                    resolvedPath = siblingPath;
+                }
+                else
+                {
+                    // Try searching recursively
+                    var recursiveFound = Directory
+                        .GetFiles(resolvedDir, assemblyFileName, SearchOption.AllDirectories)
+                        .FirstOrDefault();
+
+                    if (!string.IsNullOrEmpty(recursiveFound))
+                    {
+                        resolvedPath = recursiveFound;
+                    }
+                }
+            }
+
             if (File.Exists(resolvedPath))
             {
-                if (!assemblyPaths.Contains(resolvedPath))
+                var targetDir = Path.GetDirectoryName(resolvedPath);
+                var dllsInSameFolder = Directory.GetFiles(targetDir, "*.dll", SearchOption.TopDirectoryOnly);
+
+                foreach (var dll in dllsInSameFolder)
                 {
-                    assemblyPaths.Add(resolvedPath);
-                    Console.WriteLine($"Found assembly: {resolvedPath}");
+                    if (!assemblyPaths.Contains(dll))
+                    {
+                        assemblyPaths.Add(dll);
+                        Console.WriteLine($"Found assembly (from folder): {dll}");
+                    }
                 }
             }
             else
@@ -170,6 +204,7 @@ public partial class MainWindow : Window
 
         return (assemblyPaths, addinName);
     }
+
 
     static IEnumerable<string> InferRevitVersions(string addinDir)
     {
@@ -189,6 +224,7 @@ public partial class MainWindow : Window
 
         return versions;
     }
+
     static string GetDayInYear()
     {
         DateTime now = DateTime.Now;
@@ -281,15 +317,22 @@ public partial class MainWindow : Window
         MajorUpgrade.Default.AllowSameVersionUpgrades = true;
         project.RemoveDialogsBetween(NativeDialogs.WelcomeDlg, NativeDialogs.InstallDirDlg);
 
+        // Use a HashSet to track unique files and components to avoid duplicates
+        var uniqueFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var versionStorages = new Dictionary<string, List<WixEntity>>();
+
         foreach (var version in revitVersions)
         {
             var versionFiles = new List<WixEntity>();
             var contentsFiles = new List<WixEntity>();
 
-            if (File.Exists(addinFile))
+            // Add .addin file only once per version if it exists
+            if (File.Exists(addinFile) && uniqueFiles.Add(addinFile))
             {
-                versionFiles.Add(new WixSharp.File(addinFile));
+                versionFiles.Add(new WixSharp.File(addinFile)
+                {
+                    Id = new Id($"addin_{version}_{Path.GetFileNameWithoutExtension(addinFile)}") // Ensure unique ID
+                });
                 Console.WriteLine($"Added .addin file for version {version}: {addinFile}");
             }
 
@@ -301,10 +344,16 @@ public partial class MainWindow : Window
 
                 if (isVersionSpecific || !versionRegex.IsMatch(parentDirName))
                 {
-                    if (File.Exists(assemblyPath) && (assemblyPath.EndsWith(".dll") || assemblyPath.EndsWith(".exe") ||
-                                                      assemblyPath.EndsWith(".config")))
+                    if (File.Exists(assemblyPath) &&
+                        (assemblyPath.EndsWith(".dll") || assemblyPath.EndsWith(".exe") ||
+                         assemblyPath.EndsWith(".config")) &&
+                        uniqueFiles.Add(assemblyPath)) // Only add if not already included
                     {
-                        contentsFiles.Add(new WixSharp.File(assemblyPath));
+                        contentsFiles.Add(new WixSharp.File(assemblyPath)
+                        {
+                            Id = new Id(
+                                $"file_{version}_{Path.GetFileNameWithoutExtension(assemblyPath)}") // Ensure unique ID
+                        });
                         Console.WriteLine($"Added file to contents for version {version}: {assemblyPath}");
                     }
 
@@ -312,12 +361,15 @@ public partial class MainWindow : Window
                     {
                         var relatedFiles = Directory.GetFiles(assemblyDir, "*.*", SearchOption.TopDirectoryOnly)
                             .Where(f => f.EndsWith(".dll") || f.EndsWith(".exe") || f.EndsWith(".config"))
-                            .Where(f => !contentsFiles.Any(cf =>
-                                cf is WixSharp.File wf && wf.Name.Equals(f, StringComparison.OrdinalIgnoreCase)));
+                            .Where(f => uniqueFiles.Add(f)); // Only add new files
 
                         foreach (var file in relatedFiles)
                         {
-                            contentsFiles.Add(new WixSharp.File(file));
+                            contentsFiles.Add(new WixSharp.File(file)
+                            {
+                                Id = new Id(
+                                    $"file_{version}_{Path.GetFileNameWithoutExtension(file)}") // Ensure unique ID
+                            });
                             Console.WriteLine($"Added related file to contents for version {version}: {file}");
                         }
                     }
