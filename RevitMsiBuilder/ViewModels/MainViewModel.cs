@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
 using RevitMsiBuilder.Helpers;
@@ -16,6 +17,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand DeployCommand { get; }
     
     public ICommand ClearLogCommand { get; set; }
+    public ICommand CopyLogCommand { get; set; }
 
     // Data properties with notification
     private AddinFile _currentAddinFile;
@@ -78,11 +80,30 @@ public class MainViewModel : INotifyPropertyChanged
         BrowseCommand = new RelayCommand(BrowseForAddinFile);
         DeployCommand = new RelayCommand(DeployAddin, CanDeployAddin);
         ClearLogCommand = new RelayCommand(ClearLogBuildMsi);
+        CopyLogCommand = new RelayCommand(CopyLogBuildMsi);
     }
     private void ClearLogBuildMsi()
     {
         _logger.ClearLog();
         LogOutput = string.Empty;
+    }
+    private void CopyLogBuildMsi()
+    {
+        if (string.IsNullOrEmpty(LogOutput))
+        {
+            _logger.Log("No log to copy.");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(LogOutput);
+            _logger.Log("Log copied to clipboard.");
+        }
+        catch (Exception ex)
+        {
+            _logger.Log($"Error copying log: {ex.Message}");
+        }
     }
 
     private void BrowseForAddinFile()
