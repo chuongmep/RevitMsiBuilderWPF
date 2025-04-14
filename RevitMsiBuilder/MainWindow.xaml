@@ -172,7 +172,7 @@
                             <TextBlock
                                 FontSize="13"
                                 Foreground="#555"
-                                Text="No file selected"
+                                Text="{Binding CurrentAddinFile.FilePath, TargetNullValue='No file selected'}"
                                 TextTrimming="CharacterEllipsis"
                                 VerticalAlignment="Center"
                                 x:Name="SelectedPathText" />
@@ -201,7 +201,8 @@
                             Text="Select version:"
                             VerticalAlignment="Center" />
                         <ComboBox
-                            SelectionChanged="RevitVersionComboBox_SelectionChanged"
+                            ItemsSource="{Binding RevitVersions}"
+                            SelectedItem="{Binding SelectedRevitVersion}"
                             Style="{StaticResource ModernComboBox}"
                             Width="200"
                             x:Name="RevitVersionComboBox" />
@@ -239,6 +240,7 @@
                     AutoGenerateColumns="False"
                     ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
                     IsReadOnly="True"
+                    ItemsSource="{Binding Files}"
                     MaxHeight="350"
                     Style="{StaticResource ModernDataGrid}"
                     x:Name="FilesDataGrid">
@@ -346,6 +348,7 @@
                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                         <Button
                             Background="#6c757d"
+                            Command="{Binding ClearLogCommand}"
                             Content="Clear"
                             FontSize="11"
                             Height="24"
@@ -354,6 +357,7 @@
                             Width="60" />
                         <Button
                             Background="#6c757d"
+                            Command="{Binding CopyLogCommand}"
                             Content="Copy"
                             FontSize="11"
                             Height="24"
@@ -381,6 +385,7 @@
                         HorizontalScrollBarVisibility="Auto"
                         IsReadOnly="True"
                         Padding="10"
+                        Text="{Binding LogOutput, Mode=OneWay}"
                         TextWrapping="NoWrap"
                         VerticalScrollBarVisibility="Auto"
                         x:Name="LogConsole" />
