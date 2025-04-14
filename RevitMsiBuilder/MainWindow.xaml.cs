@@ -66,6 +66,8 @@ public partial class MainWindow : Window
         _files.Clear();
         _revitVersions.Clear();
         RevitVersionComboBox.Items.Clear();
+        // log
+        LogConsole.Clear();
 
         if (string.IsNullOrEmpty(_addinPath) || !File.Exists(_addinPath))
         {
@@ -115,6 +117,8 @@ public partial class MainWindow : Window
         {
             LogConsole.AppendText($"Error parsing .addin file: {ex.Message}\n");
         }
+        // scroll log to end
+        LogConsole.ScrollToEnd();
     }
 
     static (List<string> AssemblyPaths, string AddinName) ParseAddinFile(string addinFile)
@@ -283,137 +287,140 @@ public partial class MainWindow : Window
         {
             LogConsole.AppendText($"Error during deployment: {ex.Message}\n");
         }
+        LogConsole.ScrollToEnd();
     }
 
-    static string BuildMsi(string addinFile, List<string> assemblyPaths, IEnumerable<string> revitVersions,
-        string outputDir, string addinName, string projectName)
+ static string BuildMsi(string addinFile, List<string> assemblyPaths, IEnumerable<string> revitVersions,
+    string outputDir, string addinName, string projectName)
+{
+    // Ensure only one Revit version is used for naming (take the first one if multiple)
+    string selectedRevitVersion = revitVersions.FirstOrDefault() ?? "Unknown";
+
+    // Construct the project name as ProjectName.RevitVersion.VersionDefined
+    string formattedProjectName = $"{projectName}.{selectedRevitVersion}.{version}";
+
+    var project = new Project
     {
-        var fileName = new StringBuilder().Append(projectName).Append("-").Append(version);
-        var project = new Project
+        Name = formattedProjectName, // Set the project name
+        OutDir = outputDir,
+        Platform = Platform.x64,
+        Description = $"Revit Add-in: {addinName}",
+        UI = WUI.WixUI_InstallDir,
+        Version = new Version(version),
+        OutFileName = formattedProjectName, // Set the output file name
+        Scope = InstallScope.perUser,
+        MajorUpgrade = MajorUpgrade.Default,
+        GUID =Guid.NewGuid(),
+        BackgroundImage = File.Exists(@"Resources/Icons/BackgroundImage.png")
+            ? @"Resources/Icons/BackgroundImage.png"
+            : null,
+        BannerImage = File.Exists(@"Resources/Icons/BannerImage.png") ? @"Resources/Icons/BannerImage.png" : null,
+        ControlPanelInfo =
         {
-            Name = projectName,
-            OutDir = outputDir,
-            Platform = Platform.x64,
-            Description = $"Revit Add-in: {addinName}",
-            UI = WUI.WixUI_InstallDir,
-            Version = new Version(version),
-            OutFileName = fileName.ToString(),
-            Scope = InstallScope.perUser,
-            MajorUpgrade = MajorUpgrade.Default,
-            GUID = new Guid("A46C86A0-71A5-460B-8536-98D3ED43B574"),
-            BackgroundImage = File.Exists(@"Resources/Icons/BackgroundImage.png")
-                ? @"Resources/Icons/BackgroundImage.png"
-                : null,
-            BannerImage = File.Exists(@"Resources/Icons/BannerImage.png") ? @"Resources/Icons/BannerImage.png" : null,
-            ControlPanelInfo =
-            {
-                Manufacturer = "Autodesk",
-                HelpLink = "https://github.com/chuongmep/RevitAddInManager/issues",
-                Comments = $"Revit Add-in: {addinName}",
-                ProductIcon = File.Exists(@"Resources/Icons/ShellIcon.ico") ? @"Resources/Icons/ShellIcon.ico" : null
-            }
-        };
+            Manufacturer = "Autodesk",
+            HelpLink = "https://github.com/chuongmep/RevitMsiBuilderWPF/issues",
+            Comments = $"Revit Add-in: {addinName}",
+            ProductIcon = File.Exists(@"Resources/Icons/ShellIcon.ico") ? @"Resources/Icons/ShellIcon.ico" : null
+        }
+    };
 
-        MajorUpgrade.Default.AllowSameVersionUpgrades = true;
-        project.RemoveDialogsBetween(NativeDialogs.WelcomeDlg, NativeDialogs.InstallDirDlg);
+    MajorUpgrade.Default.AllowSameVersionUpgrades = true;
+    project.RemoveDialogsBetween(NativeDialogs.WelcomeDlg, NativeDialogs.InstallDirDlg);
 
-        // Use a HashSet to track unique files and components to avoid duplicates
-        var uniqueFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var versionStorages = new Dictionary<string, List<WixEntity>>();
+    // Use a HashSet to track unique files and components to avoid duplicates
+    var uniqueFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    var versionStorages = new Dictionary<string, List<WixEntity>>();
 
-        foreach (var version in revitVersions)
+    foreach (var version in revitVersions)
+    {
+        var versionFiles = new List<WixEntity>();
+        var contentsFiles = new List<WixEntity>();
+
+        // Add .addin file only once per version if it exists
+        if (File.Exists(addinFile) && uniqueFiles.Add(addinFile))
         {
-            var versionFiles = new List<WixEntity>();
-            var contentsFiles = new List<WixEntity>();
-
-            // Add .addin file only once per version if it exists
-            if (File.Exists(addinFile) && uniqueFiles.Add(addinFile))
+            versionFiles.Add(new WixSharp.File(addinFile)
             {
-                versionFiles.Add(new WixSharp.File(addinFile)
-                {
-                    Id = new Id($"addin_{version}_{Path.GetFileNameWithoutExtension(addinFile)}") // Ensure unique ID
-                });
-                Console.WriteLine($"Added .addin file for version {version}: {addinFile}");
-            }
+                Id = new Id($"addin_{version}_{Path.GetFileNameWithoutExtension(addinFile)}")
+            });
+            Console.WriteLine($"Added .addin file for version {version}: {addinFile}");
+        }
 
-            foreach (var assemblyPath in assemblyPaths)
+        foreach (var assemblyPath in assemblyPaths)
+        {
+            var assemblyDir = Path.GetDirectoryName(assemblyPath);
+            var parentDirName = Path.GetFileName(assemblyDir);
+            bool isVersionSpecific = versionRegex.IsMatch(parentDirName) && parentDirName == version;
+
+            if (isVersionSpecific || !versionRegex.IsMatch(parentDirName))
             {
-                var assemblyDir = Path.GetDirectoryName(assemblyPath);
-                var parentDirName = Path.GetFileName(assemblyDir);
-                bool isVersionSpecific = versionRegex.IsMatch(parentDirName) && parentDirName == version;
-
-                if (isVersionSpecific || !versionRegex.IsMatch(parentDirName))
+                if (File.Exists(assemblyPath) &&
+                    (assemblyPath.EndsWith(".dll") || assemblyPath.EndsWith(".exe") || assemblyPath.EndsWith(".config")) &&
+                    uniqueFiles.Add(assemblyPath))
                 {
-                    if (File.Exists(assemblyPath) &&
-                        (assemblyPath.EndsWith(".dll") || assemblyPath.EndsWith(".exe") ||
-                         assemblyPath.EndsWith(".config")) &&
-                        uniqueFiles.Add(assemblyPath)) // Only add if not already included
+                    contentsFiles.Add(new WixSharp.File(assemblyPath)
                     {
-                        contentsFiles.Add(new WixSharp.File(assemblyPath)
+                        Id = new Id($"file_{version}_{Path.GetFileNameWithoutExtension(assemblyPath)}")
+                    });
+                    Console.WriteLine($"Added file to contents for version {version}: {assemblyPath}");
+                }
+
+                if (Directory.Exists(assemblyDir))
+                {
+                    var relatedFiles = Directory.GetFiles(assemblyDir, "*.*", SearchOption.TopDirectoryOnly)
+                        .Where(f => f.EndsWith(".dll") || f.EndsWith(".exe") || f.EndsWith(".config"))
+                        .Where(f => uniqueFiles.Add(f));
+
+                    foreach (var file in relatedFiles)
+                    {
+                        contentsFiles.Add(new WixSharp.File(file)
                         {
-                            Id = new Id(
-                                $"file_{version}_{Path.GetFileNameWithoutExtension(assemblyPath)}") // Ensure unique ID
+                            Id = new Id($"file_{version}_{Path.GetFileNameWithoutExtension(file)}")
                         });
-                        Console.WriteLine($"Added file to contents for version {version}: {assemblyPath}");
-                    }
-
-                    if (Directory.Exists(assemblyDir))
-                    {
-                        var relatedFiles = Directory.GetFiles(assemblyDir, "*.*", SearchOption.TopDirectoryOnly)
-                            .Where(f => f.EndsWith(".dll") || f.EndsWith(".exe") || f.EndsWith(".config"))
-                            .Where(f => uniqueFiles.Add(f)); // Only add new files
-
-                        foreach (var file in relatedFiles)
-                        {
-                            contentsFiles.Add(new WixSharp.File(file)
-                            {
-                                Id = new Id(
-                                    $"file_{version}_{Path.GetFileNameWithoutExtension(file)}") // Ensure unique ID
-                            });
-                            Console.WriteLine($"Added related file to contents for version {version}: {file}");
-                        }
+                        Console.WriteLine($"Added related file to contents for version {version}: {file}");
                     }
                 }
             }
-
-            if (contentsFiles.Any())
-            {
-                versionFiles.Add(new Dir("contents", contentsFiles.ToArray()));
-            }
-
-            if (versionFiles.Any())
-            {
-                versionStorages[version] = versionFiles;
-            }
-            else
-            {
-                Console.WriteLine($"Warning: No files added for version {version}.");
-            }
         }
 
-        if (!versionStorages.Any())
+        if (contentsFiles.Any())
         {
-            Console.WriteLine("Error: No files found for any Revit version.");
-            return null;
+            versionFiles.Add(new Dir("contents", contentsFiles.ToArray()));
         }
 
-        project.Dirs = new Dir[]
+        if (versionFiles.Any())
         {
-            new InstallDir(installationDir, versionStorages.Select(v =>
-                new Dir(v.Key, v.Value.ToArray())).Cast<WixEntity>().ToArray())
-        };
-
-        Directory.CreateDirectory(outputDir);
-        try
-        {
-            return project.BuildMsi();
+            versionStorages[version] = versionFiles;
         }
-        catch (Exception ex)
+        else
         {
-            Console.WriteLine($"Error building MSI: {ex.Message}");
-            return null;
+            Console.WriteLine($"Warning: No files added for version {version}.");
         }
     }
+
+    if (!versionStorages.Any())
+    {
+        Console.WriteLine("Error: No files found for any Revit version.");
+        return null;
+    }
+
+    project.Dirs = new Dir[]
+    {
+        new InstallDir(installationDir, versionStorages.Select(v =>
+            new Dir(v.Key, v.Value.ToArray())).Cast<WixEntity>().ToArray())
+    };
+
+    Directory.CreateDirectory(outputDir);
+    try
+    {
+        return project.BuildMsi();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error building MSI: {ex.Message}");
+        return null;
+    }
+}
 
     static string SanitizeProjectName(string name)
     {
