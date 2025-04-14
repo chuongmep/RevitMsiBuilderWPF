@@ -39,6 +39,8 @@ namespace RevitMsiBuilder.Services
         /// <param name="filePath">Path to save the log file</param>
         /// <returns>True if successful, false otherwise</returns>
         bool SaveLogToFile(string filePath);
+        
+        void ClearLog();
     }
     
     /// <summary>

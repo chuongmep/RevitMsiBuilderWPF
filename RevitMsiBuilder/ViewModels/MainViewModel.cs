@@ -14,6 +14,8 @@ public class MainViewModel : INotifyPropertyChanged
     // Command properties
     public ICommand BrowseCommand { get; }
     public ICommand DeployCommand { get; }
+    
+    public ICommand ClearLogCommand { get; set; }
 
     // Data properties with notification
     private AddinFile _currentAddinFile;
@@ -75,6 +77,12 @@ public class MainViewModel : INotifyPropertyChanged
         // Initialize commands
         BrowseCommand = new RelayCommand(BrowseForAddinFile);
         DeployCommand = new RelayCommand(DeployAddin, CanDeployAddin);
+        ClearLogCommand = new RelayCommand(ClearLogBuildMsi);
+    }
+    private void ClearLogBuildMsi()
+    {
+        _logger.ClearLog();
+        LogOutput = string.Empty;
     }
 
     private void BrowseForAddinFile()
