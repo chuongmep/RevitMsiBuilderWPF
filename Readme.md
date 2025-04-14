@@ -3,6 +3,9 @@
 
 Revit Msi Builder WPF is a lightweight tool to package and deploy Revit Add-ins as MSI installers. Built with a WPF frontend and CLI backend, it helps developers distribute add-ins across multiple Revit versions with ease and consistency.
 
+You want CLI ? Visit 👉 [RevitAddinMsiBuilder](https://github.com/chuongmep/RevitAddinMsiBuilder)
+
+
 # Prerequisites
 
 - Install .NET 6.0 SDK or later.
