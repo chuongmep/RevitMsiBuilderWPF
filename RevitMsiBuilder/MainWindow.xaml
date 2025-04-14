@@ -152,7 +152,7 @@
                             Click="BrowseButton_Click"
                             Height="36"
                             Style="{StaticResource ModernButton}"
-                            Width="130">
+                            Width="150">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock
                                     FontSize="14"
