@@ -172,14 +172,14 @@ namespace RevitMsiBuilder.Services
                 }
                 
                 // Method 2: Look for version-named folders within the current directory
-                foreach (var dir in Directory.GetDirectories(directoryPath))
-                {
-                    string dirName = Path.GetFileName(dir);
-                    if (VersionRegex.IsMatch(dirName))
-                    {
-                        versions.Add(dirName);
-                    }
-                }
+                // foreach (var dir in Directory.GetDirectories(directoryPath))
+                // {
+                //     string dirName = Path.GetFileName(dir);
+                //     if (VersionRegex.IsMatch(dirName))
+                //     {
+                //         versions.Add(dirName);
+                //     }
+                // }
                 
                 // Method 3: Look for version in the directory name itself
                 string currentDirName = Path.GetFileName(directoryPath);
@@ -192,10 +192,11 @@ namespace RevitMsiBuilder.Services
                 if (versions.Count == 0)
                 {
                     // Get current year and next year
-                    int currentYear = DateTime.Now.Year;
-                    versions.Add(currentYear.ToString());
-                    versions.Add((currentYear + 1).ToString());
-                    versions.Add((currentYear - 1).ToString());
+                    int currentYear = DateTime.Now.Year + 1;
+                    for (int i = 0; i < 10; i++)
+                    {
+                        versions.Add((currentYear - i).ToString());
+                    }
                 }
                 
                 _logger.Log($"Inferred Revit versions: {string.Join(", ", versions)}");
