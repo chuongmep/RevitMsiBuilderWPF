@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.VisualBasic.Logging;
 using RevitMsiBuilder.Models;
 
 namespace RevitMsiBuilder.Services
@@ -54,7 +55,7 @@ namespace RevitMsiBuilder.Services
             {
                 // Load and parse XML
                 XDocument xdoc = XDocument.Load(filePath);
-                XElement addInElement = xdoc.Root;
+                XElement? addInElement = xdoc.Root;
                 
                 if (addInElement == null || addInElement.Name.LocalName != "RevitAddIns")
                 {
@@ -62,16 +63,18 @@ namespace RevitMsiBuilder.Services
                 }
                 
                 // Get the first AddIn element (either Application or Command)
-                XElement addIn = addInElement.Elements()
+                XElement? addIn = addInElement.Elements()
                     .FirstOrDefault(e => e.Name.LocalName == "AddIn");
-                
+                // Get Type Attribute
+                string? type = addIn?.Attribute("Type")?.Value;
+                _logger.Log($"AddIn Type: {type}");
                 if (addIn == null)
                 {
                     throw new InvalidDataException("No AddIn element found in the addin file");
                 }
                 
                 // Get the name from the Name element
-                string name = addIn.Element("Name")?.Value;
+                string? name = addIn.Element("Name")?.Value;
                 if (string.IsNullOrEmpty(name))
                 {
                     // Fallback to using filename without extension
@@ -79,22 +82,36 @@ namespace RevitMsiBuilder.Services
                 }
                 
                 // Get the assembly path
-                string assemblyPath = addIn.Element("Assembly")?.Value;
+                string? assemblyPath = addIn.Element("Assembly")?.Value;
+                _logger.Log($"Assembly Path: {assemblyPath}");
                 if (string.IsNullOrEmpty(assemblyPath))
                 {
                     throw new InvalidDataException("Assembly path not found in addin file");
                 }
                 
                 // Resolve relative path to absolute path
-                string baseDir = Path.GetDirectoryName(filePath);
+                string? baseDir = Path.GetDirectoryName(filePath);
                 string fullAssemblyPath = Path.GetFullPath(Path.Combine(baseDir, assemblyPath));
-                
+
+                // Get AddInId if available
+                string? addInId = addIn.Attribute("AddInId")?.Value;
+                if(string.IsNullOrEmpty(addInId)) _logger.LogWarning($"AddInId Need Use For Project: {addInId}");
+                _logger.Log($"AddInId: {addInId}");
+                //get LongDescription
+                string longDescription = addIn.Element("LongDescription")?.Value ?? string.Empty;
+                string vendorId = addIn.Element("VendorId")?.Value ?? string.Empty;
+                string vendorDescription = addIn.Element("VendorDescription")?.Value ?? string.Empty;
                 // Create and return the AddinFile object
                 var result = new AddinFile
                 {
                     Name = name,
                     FilePath = filePath,
-                    AssemblyPaths = new List<string> { fullAssemblyPath }
+                    AddinType = type,
+                    AssemblyPaths = new List<string> { fullAssemblyPath },
+                    AddinGuid = addInId,
+                    Description = longDescription,
+                    VendorId = vendorId,
+                    VendorDescription = vendorDescription
                 };
                 
                 // Try to find dependencies
@@ -110,7 +127,7 @@ namespace RevitMsiBuilder.Services
             }
         }
         
-        private void FindDependencies(AddinFile addinFile, string baseDir)
+        private void FindDependencies(AddinFile addinFile, string? baseDir)
         {
             // Get the directory of the main assembly
             if (addinFile.AssemblyPaths.Count == 0)

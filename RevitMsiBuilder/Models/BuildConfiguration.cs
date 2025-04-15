@@ -22,7 +22,11 @@ public class BuildConfiguration
     /// <summary>
     /// Name of the project/add-in
     /// </summary>
-    public string ProjectName { get; set; }
+    public string? ProjectName { get; set; }
+
+    public string ProjectGUID { get; set; }
+
+    public string ProjectDescription { get; set; }
         
     /// <summary>
     /// Version string for the MSI

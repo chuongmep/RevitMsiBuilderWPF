@@ -14,6 +14,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Topmost = true;
         // Initialize ViewModel with required services
         Logger logger = new Logger();
         AddinFileParser parser = new AddinFileParser(logger);
