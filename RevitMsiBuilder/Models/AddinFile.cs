@@ -28,7 +28,7 @@ public class AddinFile
     /// <summary>
     /// Add-in GUID if specified in the .addin file
     /// </summary>
-    public string? AddinGuid { get; set; }
+    public Guid AddinGuid { get; set; }
         
     /// <summary>
     /// Vendor name if specified in the .addin file

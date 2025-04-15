@@ -94,8 +94,9 @@ namespace RevitMsiBuilder.Services
                 string fullAssemblyPath = Path.GetFullPath(Path.Combine(baseDir, assemblyPath));
 
                 // Get AddInId if available
-                string? addInId = addIn.Attribute("AddInId")?.Value;
-                if(string.IsNullOrEmpty(addInId)) _logger.LogWarning($"AddInId Need Use For Project: {addInId}");
+                Guid addInId = addIn.Element("AddInId")?.Value != null
+                    ? Guid.Parse(addIn.Element("AddInId")?.Value!)
+                    : Guid.NewGuid();
                 _logger.Log($"AddInId: {addInId}");
                 //get LongDescription
                 string longDescription = addIn.Element("LongDescription")?.Value ?? string.Empty;

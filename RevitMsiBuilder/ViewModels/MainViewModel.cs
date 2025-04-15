@@ -209,8 +209,8 @@ public class MainViewModel : INotifyPropertyChanged
                 ProjectName = CurrentAddinFile.Name,
                 Version = _msiBuilder.GenerateVersionString(),
                 InstallForAllUsers = IsInstallForAllUsers,
-                ProjectGUID = string.IsNullOrEmpty(CurrentAddinFile.AddinGuid) ? Guid.NewGuid().ToString() : CurrentAddinFile.AddinGuid,
-                ProjectDescription = CurrentAddinFile.Description,
+                ProjectGUID = CurrentAddinFile.AddinGuid,
+                ProjectDescription = CurrentAddinFile.Description??"Project Automation Revit",
             };
 
             _logger.Log($"Building MSI for {config.ProjectName} version {config.Version}...");

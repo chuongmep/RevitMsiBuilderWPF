@@ -24,7 +24,7 @@ public class BuildConfiguration
     /// </summary>
     public string? ProjectName { get; set; }
 
-    public string ProjectGUID { get; set; }
+    public Guid ProjectGUID { get; set; }
 
     public string ProjectDescription { get; set; }
         
