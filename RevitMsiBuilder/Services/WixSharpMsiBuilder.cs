@@ -70,7 +70,7 @@ namespace RevitMsiBuilder.Services;
             project.RemoveDialogsBetween(NativeDialogs.WelcomeDlg, NativeDialogs.InstallDirDlg);
 
             // Build directory structure
-            project.Dirs = BuildDirectoryStructure(addinFile, revitVersions);
+            project.Dirs = BuildDirectoryStructure(addinFile, revitVersions,config.InstallForAllUsers);
 
             // Create output directory if it doesn't exist
             Directory.CreateDirectory(config.OutputDirectory);
@@ -87,9 +87,11 @@ namespace RevitMsiBuilder.Services;
             }
         }
 
-        private Dir[] BuildDirectoryStructure(AddinFile addinFile, IEnumerable<string> revitVersions)
+        private Dir[] BuildDirectoryStructure(AddinFile addinFile, IEnumerable<string> revitVersions,bool installForAllUsers)
         {
-            const string installationDir = @"%AppDataFolder%\Autodesk\Revit\Addins\";
+            string installationDir = installForAllUsers
+                ? @"%CommonAppDataFolder%\Autodesk\Revit\Addins\"
+                : @"%AppDataFolder%\Autodesk\Revit\Addins\";
             Regex versionRegex = new Regex(@"\d{4}");
             // Use HashSet to track unique files
             var uniqueFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

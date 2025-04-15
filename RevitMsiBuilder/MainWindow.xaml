@@ -310,8 +310,10 @@
                         Margin="0,0,20,0"
                         VerticalAlignment="Center" />
                     <CheckBox
-                        Content="Multiple Versions"
-                        IsEnabled="False"
+                        Content="Install for all users"
+                        IsChecked="{Binding IsInstallForAllUsers}"
+                        IsEnabled="True"
+                        ToolTip="Installation will be available for all users on this computer"
                         VerticalAlignment="Center" />
                 </StackPanel>
                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">

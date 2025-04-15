@@ -62,6 +62,18 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    private bool _isInstallForAllUsers;
+
+    public bool IsInstallForAllUsers
+    {
+        get => _isInstallForAllUsers;
+        set
+        {
+            _isInstallForAllUsers = value;
+            OnPropertyChanged(nameof(IsInstallForAllUsers));
+        }
+    }
+
     // Services to be injected
     private readonly IAddinFileParser _addinParser;
     private readonly IMsiBuilder _msiBuilder;
@@ -183,7 +195,8 @@ public class MainViewModel : INotifyPropertyChanged
             {
                 RevitVersion = SelectedRevitVersion,
                 ProjectName = CurrentAddinFile.Name,
-                Version = _msiBuilder.GenerateVersionString()
+                Version = _msiBuilder.GenerateVersionString(),
+                InstallForAllUsers = IsInstallForAllUsers,
             };
 
             _logger.Log($"Building MSI for {config.ProjectName} version {config.Version}...");
