@@ -74,6 +74,18 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    private bool _isCompressMsi;
+
+    public bool IsCompressMsi
+    {
+        get => _isCompressMsi;
+        set
+        {
+            _isCompressMsi = value;
+            OnPropertyChanged(nameof(IsCompressMsi));
+        }
+    }
+
     // Services to be injected
     private readonly IAddinFileParser _addinParser;
     private readonly IMsiBuilder _msiBuilder;
@@ -204,17 +216,17 @@ public class MainViewModel : INotifyPropertyChanged
             _logger.Log($"Building MSI for {config.ProjectName} version {config.Version}...");
 
             string msiPath = _msiBuilder.BuildMsi(CurrentAddinFile, new[] { config.RevitVersion }, config);
-
-            if (!string.IsNullOrEmpty(msiPath))
+            if(string.IsNullOrEmpty(msiPath))
             {
-                _logger.Log("Msi created successfully at " + msiPath);
+                _logger.Log("Error: MSI build failed.");
+                return;
+            }
+            _logger.Log("Msi created successfully at " + msiPath);
+            if (!string.IsNullOrEmpty(msiPath) && IsCompressMsi)
+            {
                 string zipPath = Path.Combine(config.OutputDirectory, $"{config.ProjectName}-{config.Version}.zip");
                 _msiBuilder.CompressFile(msiPath, zipPath);
                 _logger.Log("Msi compressed into zip successfully at " + zipPath);
-            }
-            else
-            {
-                _logger.Log("Error: MSI build failed.");
             }
         }
         catch (Exception ex)
@@ -224,9 +236,9 @@ public class MainViewModel : INotifyPropertyChanged
     }
 
     // INotifyPropertyChanged implementation
-    public event PropertyChangedEventHandler PropertyChanged;
+    public event PropertyChangedEventHandler? PropertyChanged;
 
-    protected void OnPropertyChanged(string propertyName)
+    private void OnPropertyChanged(string propertyName)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }

@@ -305,8 +305,8 @@
                 <StackPanel HorizontalAlignment="Left" Orientation="Horizontal">
                     <CheckBox
                         Content="Compress file .msi"
-                        IsChecked="True"
-                        IsEnabled="False"
+                        IsChecked="{Binding IsCompressMsi}"
+                        IsEnabled="True"
                         Margin="0,0,20,0"
                         VerticalAlignment="Center" />
                     <CheckBox
