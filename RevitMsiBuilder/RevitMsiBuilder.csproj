@@ -9,7 +9,8 @@
         <ApplicationIcon>Resources\build.ico</ApplicationIcon>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="SharpZipLib" Version="1.4.2" />
+	    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+		<PackageReference Include="SharpZipLib" Version="1.4.2" />
         <PackageReference Include="WixSharp.Core" Version="2.6.1" />
     </ItemGroup>
     <ItemGroup>

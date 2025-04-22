@@ -2,89 +2,56 @@
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Forms;
 using System.Windows.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
-using RevitMsiBuilder.Helpers;
 using RevitMsiBuilder.Models;
 using RevitMsiBuilder.Services;
+using Clipboard = System.Windows.Clipboard;
+using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 
 namespace RevitMsiBuilder.ViewModels;
 
-public class MainViewModel : INotifyPropertyChanged
+public partial class MainViewModel : ObservableObject
 {
-    // Command properties
-    public ICommand BrowseCommand { get; }
-    public ICommand DeployCommand { get; }
-    
-    public ICommand ClearLogCommand { get; set; }
-    public ICommand CopyLogCommand { get; set; }
 
     // Data properties with notification
-    private AddinFile _currentAddinFile;
+    [ObservableProperty] private AddinFile _currentAddinFile;
 
-    public AddinFile CurrentAddinFile
+    partial void OnCurrentAddinFileChanged(AddinFile? oldValue, AddinFile newValue)
     {
-        get => _currentAddinFile;
-        set
-        {
-            _currentAddinFile = value;
-            OnPropertyChanged(nameof(CurrentAddinFile));
-        }
+
+        DeployAddinCommand.NotifyCanExecuteChanged();
     }
 
-    private ObservableCollection<FileItem> _files = new ObservableCollection<FileItem>();
-    public ObservableCollection<FileItem> Files => _files;
 
-    private ObservableCollection<string> _revitVersions = new ObservableCollection<string>();
-    public ObservableCollection<string> RevitVersions => _revitVersions;
 
-    private string _selectedRevitVersion;
+    [ObservableProperty] private ObservableCollection<FileItem> _files = new ObservableCollection<FileItem>();
 
-    public string SelectedRevitVersion
-    {
-        get => _selectedRevitVersion;
-        set
-        {
-            _selectedRevitVersion = value;
-            OnPropertyChanged(nameof(SelectedRevitVersion));
-        }
-    }
+    [ObservableProperty] private ObservableCollection<string> _revitVersions = new ObservableCollection<string>();
 
-    private string _logOutput = string.Empty;
 
-    public string LogOutput
-    {
-        get => _logOutput;
-        set
-        {
-            _logOutput = value;
-            OnPropertyChanged(nameof(LogOutput));
-        }
-    }
+    [ObservableProperty] private string _selectedRevitVersion;
 
-    private bool _isInstallForAllUsers;
 
-    public bool IsInstallForAllUsers
-    {
-        get => _isInstallForAllUsers;
-        set
-        {
-            _isInstallForAllUsers = value;
-            OnPropertyChanged(nameof(IsInstallForAllUsers));
-        }
-    }
 
-    private bool _isCompressMsi;
+    [ObservableProperty] private string _logOutput = string.Empty;
 
-    public bool IsCompressMsi
-    {
-        get => _isCompressMsi;
-        set
-        {
-            _isCompressMsi = value;
-            OnPropertyChanged(nameof(IsCompressMsi));
-        }
-    }
+
+    [ObservableProperty]
+    private string? selectedFolderPath;
+
+
+
+    [ObservableProperty] private bool _isInstallForAllUsers;
+
+
+
+    [ObservableProperty] private bool _isCompressMsi;
+
+
 
     // Services to be injected
     private readonly IAddinFileParser _addinParser;
@@ -100,17 +67,17 @@ public class MainViewModel : INotifyPropertyChanged
         // Hook up logger events
         _logger.LogAdded += (sender, message) => { LogOutput += message + Environment.NewLine; };
 
-        // Initialize commands
-        BrowseCommand = new RelayCommand(BrowseForAddinFile);
-        DeployCommand = new RelayCommand(DeployAddin, CanDeployAddin);
-        ClearLogCommand = new RelayCommand(ClearLogBuildMsi);
-        CopyLogCommand = new RelayCommand(CopyLogBuildMsi);
     }
+    [RelayCommand]
+
     private void ClearLogBuildMsi()
     {
         _logger.ClearLog();
         LogOutput = string.Empty;
     }
+
+    [RelayCommand]
+
     private void CopyLogBuildMsi()
     {
         if (string.IsNullOrEmpty(LogOutput))
@@ -130,6 +97,8 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
+
+    [RelayCommand]
     private void BrowseForAddinFile()
     {
         var dialog = new OpenFileDialog
@@ -164,13 +133,10 @@ public class MainViewModel : INotifyPropertyChanged
                 _logger.Log($"Error parsing .addin file: {ex.Message}");
             }
         }
-        
+
     }
 
-    private void GenerateConfig()
-    {
-        // gen a file setting.config
-    }
+
 
     private void LoadRevitVersions(string addinDir)
     {
@@ -193,6 +159,8 @@ public class MainViewModel : INotifyPropertyChanged
         return CurrentAddinFile != null && !string.IsNullOrEmpty(SelectedRevitVersion);
     }
 
+    [RelayCommand]
+
     private void DeployAddin()
     {
         if (!CanDeployAddin())
@@ -210,13 +178,16 @@ public class MainViewModel : INotifyPropertyChanged
                 Version = _msiBuilder.GenerateVersionString(),
                 InstallForAllUsers = IsInstallForAllUsers,
                 ProjectGUID = CurrentAddinFile.AddinGuid,
-                ProjectDescription = CurrentAddinFile.Description??"Project Automation Revit",
+                ProjectDescription = CurrentAddinFile.Description ?? "Project Automation Revit",
+                OutputDirectory = SelectedFolderPath ??= Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+        "RevitMsiBuilder", "Output")
             };
 
             _logger.Log($"Building MSI for {config.ProjectName} version {config.Version}...");
 
             string msiPath = _msiBuilder.BuildMsi(CurrentAddinFile, new[] { config.RevitVersion }, config);
-            if(string.IsNullOrEmpty(msiPath))
+            if (string.IsNullOrEmpty(msiPath))
             {
                 _logger.Log("Error: MSI build failed.");
                 return;
@@ -235,11 +206,23 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    // INotifyPropertyChanged implementation
-    public event PropertyChangedEventHandler? PropertyChanged;
 
-    private void OnPropertyChanged(string propertyName)
+    [RelayCommand]
+    private void BrowseFolder()
     {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        using var dialog = new FolderBrowserDialog
+        {
+            Description = "Select a folder",
+            UseDescriptionForTitle = true,
+            ShowNewFolderButton = true
+        };
+
+        DialogResult result = dialog.ShowDialog();
+        if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.SelectedPath))
+        {
+            // Handle the selected folder path
+            SelectedFolderPath = dialog.SelectedPath;
+        }
     }
+
 }
